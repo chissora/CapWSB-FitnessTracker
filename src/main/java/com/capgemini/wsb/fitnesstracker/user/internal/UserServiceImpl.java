@@ -1,25 +1,22 @@
 package com.capgemini.wsb.fitnesstracker.user.internal;
 
-import com.capgemini.wsb.fitnesstracker.user.api.User;
-import com.capgemini.wsb.fitnesstracker.user.api.UserProvider;
-import com.capgemini.wsb.fitnesstracker.user.api.UserService;
+import com.capgemini.wsb.fitnesstracker.user.api.*;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
-class UserServiceImpl implements UserService, UserProvider {
+public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
 
     @Override
-    public User createUser(final User user) {
-        log.info("Creating User {}", user);
+    public User createUser(User user) {
         if (user.getId() != null) {
             throw new IllegalArgumentException("User has already DB ID, update is not permitted!");
         }
@@ -27,12 +24,30 @@ class UserServiceImpl implements UserService, UserProvider {
     }
 
     @Override
-    public Optional<User> getUser(final Long userId) {
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
+    }
+
+    @Override
+    public User updateUser(Long userId, User user) {
+        return userRepository.findById(userId)
+                .map(existingUser -> {
+                    existingUser.setFirstName(user.getFirstName());
+                    existingUser.setLastName(user.getLastName());
+                    existingUser.setBirthdate(user.getBirthdate());
+                    existingUser.setEmail(user.getEmail());
+                    return userRepository.save(existingUser);
+                })
+                .orElseThrow(() -> new UserNotFoundException(userId));
+    }
+
+    @Override
+    public Optional<User> getUser(Long userId) {
         return userRepository.findById(userId);
     }
 
     @Override
-    public Optional<User> getUserByEmail(final String email) {
+    public Optional<User> getUserByEmail(String email) {
         return userRepository.findByEmail(email);
     }
 
@@ -41,4 +56,20 @@ class UserServiceImpl implements UserService, UserProvider {
         return userRepository.findAll();
     }
 
+    @Override
+    public List<BasicUser> findAllBasicUsers() {
+        return userRepository.findAll().stream()
+                .map(user -> new BasicUser(user.getFirstName(), user.getLastName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<User> findUserByEmailFragment(String emailFragment) {
+        return userRepository.findEmailUserByEmailFragment(emailFragment);
+    }
+
+    @Override
+    public List<User> findUsersOlderThan(LocalDate date) {
+        return userRepository.findUsersOlderThan(date);
+    }
 }
