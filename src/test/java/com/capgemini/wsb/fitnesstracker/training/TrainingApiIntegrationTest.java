@@ -11,13 +11,13 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-
 import static java.time.LocalDate.now;
 import static java.util.UUID.randomUUID;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.log;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -32,7 +32,6 @@ class TrainingApiIntegrationTest extends IntegrationTestBase {
 
     @Test
     void shouldReturnAllTrainings_whenGettingAllTrainings() throws Exception {
-
         User user1 = existingUser(generateClient());
         Training training1 = persistTraining(generateTraining(user1));
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00");
@@ -45,24 +44,20 @@ class TrainingApiIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$[0].user.firstName").value(user1.getFirstName()))
                 .andExpect(jsonPath("$[0].user.lastName").value(user1.getLastName()))
                 .andExpect(jsonPath("$[0].user.email").value(user1.getEmail()))
-
-
                 .andExpect(jsonPath("$[0].startTime").value(sdf.format(training1.getStartTime())))
                 .andExpect(jsonPath("$[0].endTime").value(sdf.format(training1.getEndTime())))
-                .andExpect(jsonPath("$[0].distance").value((training1.getDistance())))
+                .andExpect(jsonPath("$[0].distance").value(training1.getDistance()))
                 .andExpect(jsonPath("$[0].averageSpeed").value(training1.getAverageSpeed()))
-
                 .andExpect(jsonPath("$[1]").doesNotExist());
     }
 
     @Test
     void shouldReturnAllTrainingsForDedicatedUser_whenGettingAllTrainingsForDedicatedUser() throws Exception {
-
         User user1 = existingUser(generateClient());
         Training training1 = persistTraining(generateTraining(user1));
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00");
         sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
-        mockMvc.perform(get("/v1/trainings/{userId}", user1.getId()).contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/v1/trainings/user/{userId}", user1.getId()).contentType(MediaType.APPLICATION_JSON))
                 .andDo(log())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
@@ -72,19 +67,16 @@ class TrainingApiIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$[0].user.email").value(user1.getEmail()))
                 .andExpect(jsonPath("$[0].startTime").value(sdf.format(training1.getStartTime())))
                 .andExpect(jsonPath("$[0].endTime").value(sdf.format(training1.getEndTime())))
-                .andExpect(jsonPath("$[0].distance").value((training1.getDistance())))
+                .andExpect(jsonPath("$[0].distance").value(training1.getDistance()))
                 .andExpect(jsonPath("$[0].averageSpeed").value(training1.getAverageSpeed()))
-
-                .andExpect(jsonPath("$[1]").doesNotExist());;
+                .andExpect(jsonPath("$[1]").doesNotExist());
     }
 
     @Test
     void shouldReturnAllFinishedTrainingsAfterTime_whenGettingAllFinishedTrainingsAfterTime() throws Exception {
-
         User user1 = existingUser(generateClient());
         Training training1 = persistTraining(generateTrainingWithDetails(user1, "2024-05-19 19:00:00", "2024-05-19 20:30:00", ActivityType.RUNNING, 14, 11.5));
         Training training2 = persistTraining(generateTrainingWithDetails(user1, "2024-05-17 19:00:00", "2024-05-17 20:30:00", ActivityType.RUNNING, 14, 11.5));
-
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS+00:00");
         sdf.setTimeZone(java.util.TimeZone.getTimeZone("UTC"));
         mockMvc.perform(get("/v1/trainings/finished/{afterTime}", "2024-05-18").contentType(MediaType.APPLICATION_JSON))
@@ -95,21 +87,19 @@ class TrainingApiIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$[0].user.firstName").value(user1.getFirstName()))
                 .andExpect(jsonPath("$[0].user.lastName").value(user1.getLastName()))
                 .andExpect(jsonPath("$[0].user.email").value(user1.getEmail()))
-                .andExpect(jsonPath("$[0].startTime").value(sdf.format(training1.getStartTime())))
-                .andExpect(jsonPath("$[0].endTime").value(sdf.format(training1.getEndTime())))
-                .andExpect(jsonPath("$[0].distance").value((training1.getDistance())))
-                .andExpect(jsonPath("$[0].averageSpeed").value(training1.getAverageSpeed()))
+                .andExpect(jsonPath("$[0].startTime").value(sdf.format(training2.getStartTime())))
+                .andExpect(jsonPath("$[0].endTime").value(sdf.format(training2.getEndTime())))
+                .andExpect(jsonPath("$[0].distance").value(training2.getDistance()))
+                .andExpect(jsonPath("$[0].averageSpeed").value(training2.getAverageSpeed()))
                 .andExpect(jsonPath("$[1]").doesNotExist());
     }
 
     @Test
     void getAllTrainingByActivityType_whenGettingAllTrainingByActivityType() throws Exception {
-
         User user1 = existingUser(generateClient());
         Training training1 = persistTraining(generateTrainingWithActivityType(user1, ActivityType.RUNNING));
         Training training2 = persistTraining(generateTrainingWithActivityType(user1, ActivityType.TENNIS));
         Training training3 = persistTraining(generateTrainingWithActivityType(user1, ActivityType.TENNIS));
-
         mockMvc.perform(get("/v1/trainings/activityType").param("activityType", "TENNIS").contentType(MediaType.APPLICATION_JSON))
                 .andDo(log())
                 .andExpect(status().isOk())
@@ -124,25 +114,34 @@ class TrainingApiIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$[1].user.lastName").value(user1.getLastName()))
                 .andExpect(jsonPath("$[1].user.email").value(user1.getEmail()))
                 .andExpect(jsonPath("$[1].activityType").value(training3.getActivityType().toString()))
-
                 .andExpect(jsonPath("$[2]").doesNotExist());
     }
 
     @Test
     void shouldPersistTraining_whenCreatingNewTraining() throws Exception {
-
         User user1 = existingUser(generateClient());
-
         String requestBody = """
                 {
-                    "userId": "%s",
+                    "user": {
+                        "id": %d,
+                        "firstName": "%s",
+                        "lastName": "%s",
+                        "birthdate": "%s",
+                        "email": "%s"
+                    },
                     "startTime": "2024-04-01T11:00:00",
                     "endTime": "2024-04-01T11:00:00",
                     "activityType": "RUNNING",
                     "distance": 10.52,
                     "averageSpeed": 8.2
                 }
-                """.formatted(user1.getId());
+                """.formatted(
+                user1.getId(),
+                user1.getFirstName(),
+                user1.getLastName(),
+                user1.getBirthdate().toString(),
+                user1.getEmail()
+        );
         mockMvc.perform(post("/v1/trainings").contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andDo(log())
                 .andExpect(status().isCreated())
@@ -152,24 +151,36 @@ class TrainingApiIntegrationTest extends IntegrationTestBase {
                 .andExpect(jsonPath("$.user.email").value(user1.getEmail()))
                 .andExpect(jsonPath("$.distance").value(10.52))
                 .andExpect(jsonPath("$.averageSpeed").value(8.2));
-
     }
 
     @Test
     void shouldUpdateTraining_whenUpdatingTraining() throws Exception {
-
         User user1 = existingUser(generateClient());
         Training training1 = persistTraining(generateTrainingWithActivityType(user1, ActivityType.RUNNING));
         String requestBody = """
                 {
-                "userId": "%s"
+                "id": %d,
+                "user": {
+                    "id": %d,
+                    "firstName": "%s",
+                    "lastName": "%s",
+                    "birthdate": "%s",
+                    "email": "%s"
+                },
                 "startTime": "2022-04-01T10:00:00",
                 "endTime": "2022-04-01T11:00:00",
                 "activityType": "TENNIS",
                 "distance": 0.0,
                 "averageSpeed": 0.0
                 }
-                """.formatted(user1.getId());
+                """.formatted(
+                training1.getId(),
+                user1.getId(),
+                user1.getFirstName(),
+                user1.getLastName(),
+                user1.getBirthdate().toString(),
+                user1.getEmail()
+        );
         mockMvc.perform(put("/v1/trainings/{trainingId}", training1.getId()).contentType(MediaType.APPLICATION_JSON).content(requestBody))
                 .andDo(log())
                 .andExpect(status().isOk())
@@ -188,39 +199,16 @@ class TrainingApiIntegrationTest extends IntegrationTestBase {
 
     private static Training generateTraining(User user) throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        return new Training(
-                user,
-                sdf.parse("2024-01-19 08:00:00"),
-                sdf.parse("2024-01-19 09:30:00"),
-                ActivityType.RUNNING,
-                10.5,
-                8.2);
+        return new Training(user, sdf.parse("2024-01-19 08:00:00"), sdf.parse("2024-01-19 09:30:00"), ActivityType.RUNNING, 10.5, 8.2);
     }
 
     private static Training generateTrainingWithActivityType(User user, ActivityType activityType) throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        return new Training(
-                user,
-                sdf.parse("2024-01-19 08:00:00"),
-                sdf.parse("2024-01-19 09:30:00"),
-                activityType,
-                0, 0);
+        return new Training(user, sdf.parse("2024-01-19 08:00:00"), sdf.parse("2024-01-19 09:30:00"), activityType, 0, 0);
     }
 
     private static Training generateTrainingWithDetails(User user, String startTime, String endTime, ActivityType activityType, double distance, double averageSpeed) throws ParseException {
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        return new Training(
-                user,
-                sdf.parse(startTime),
-                sdf.parse(endTime),
-                activityType,
-                distance,
-                averageSpeed);
+        return new Training(user, sdf.parse(startTime), sdf.parse(endTime), activityType, distance, averageSpeed);
     }
-
-
 }
-

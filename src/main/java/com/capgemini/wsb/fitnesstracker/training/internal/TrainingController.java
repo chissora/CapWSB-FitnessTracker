@@ -33,6 +33,30 @@ public class TrainingController {
                 .orElseThrow(() -> new TrainingNotFoundException(id));
     }
 
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<TrainingDto>> getAllTrainingsForDedicatedUser(@PathVariable Long userId) {
+        List<TrainingDto> trainings = trainingService.getAllTrainingsForDedicatedUser(userId).stream()
+                .map(trainingMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(trainings);
+    }
+
+    @GetMapping("/finished/{afterTime}")
+    public ResponseEntity<List<TrainingDto>> getAllFinishedTrainingsBefore(@PathVariable String afterTime) {
+        List<TrainingDto> trainings = trainingService.getAllFinishedTrainingsBefore(afterTime).stream()
+                .map(trainingMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(trainings);
+    }
+
+    @GetMapping("/activityType")
+    public ResponseEntity<List<TrainingDto>> getAllTrainingByActivityType(@RequestParam ActivityType activityType) {
+        List<TrainingDto> trainings = trainingService.getAllTrainingByActivityType(activityType).stream()
+                .map(trainingMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(trainings);
+    }
+
     @PostMapping
     public ResponseEntity<Training> createTraining(@RequestBody TrainingDto trainingDto) {
         Training training = trainingMapper.toEntity(trainingDto);
