@@ -1,37 +1,53 @@
 package com.capgemini.wsb.fitnesstracker.training.internal;
 
 import com.capgemini.wsb.fitnesstracker.training.api.Training;
-import com.capgemini.wsb.fitnesstracker.training.api.TrainingProvider;
 import com.capgemini.wsb.fitnesstracker.training.api.TrainingService;
+import com.capgemini.wsb.fitnesstracker.training.api.TrainingNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-class TrainingServiceImpl implements TrainingService, TrainingProvider {
-
+public class TrainingServiceImpl implements TrainingService {
     private final TrainingRepository trainingRepository;
 
     @Override
-    public Optional<Training> getTraining(final long trainingId) {
-        return trainingRepository.findById(trainingId);
+    public List<Training> getAllTrainings() {
+        return trainingRepository.findAll();
     }
 
     @Override
-    public List<Training> getAllTrainings() { return trainingRepository.findAll(); }
-    @Override
-    public List<Training> getAllTrainingsForDedicatedUser(long userId) {
-        return trainingRepository.findAllTrainingsByUserID(userId);
+    public List<Training> getAllTrainingsForDedicatedUser(Long userId) {
+        return trainingRepository.findAllByUserId(userId);
     }
 
     @Override
-    public Training createTraining(Training training){
+    public List<Training> getAllFinishedTrainingsBefore(String afterTime) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date date;
+        try {
+            date = sdf.parse(afterTime);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Invalid date format");
+        }
+        return trainingRepository.findByEndTimeBefore(date);
+    }
+
+    @Override
+    public List<Training> getAllTrainingByActivityType(ActivityType activityType) {
+        return trainingRepository.findAllByActivityType(activityType);
+    }
+
+    @Override
+    public Training createTraining(Training training) {
         log.info("Creating Training {}", training);
         if (training.getId() != null) {
             throw new IllegalArgumentException("Training has already DB ID, update is not permitted!");
@@ -40,26 +56,29 @@ class TrainingServiceImpl implements TrainingService, TrainingProvider {
     }
 
     @Override
-    public List<Training> findAllFinishedTrainings(){
-        LocalDate today = LocalDate.now();
-        return trainingRepository.findAllFinishedTrainings(today);
+    public Training updateTraining(Long trainingId, Training training) {
+        Training existingTraining = trainingRepository.findById(trainingId)
+                .orElseThrow(() -> new IllegalArgumentException("Training not found"));
+
+        existingTraining.setUser(training.getUser());
+        existingTraining.setStartTime(training.getStartTime());
+        existingTraining.setEndTime(training.getEndTime());
+        existingTraining.setActivityType(training.getActivityType());
+        existingTraining.setDistance(training.getDistance());
+        existingTraining.setAverageSpeed(training.getAverageSpeed());
+
+        return trainingRepository.save(existingTraining);
     }
 
     @Override
-    public List<Training> findAllFinishedTrainingsBefore(LocalDate date){
-        //return trainingRepository.findAllFinishedTrainings(date);
-        System.out.println(date);
-        return trainingRepository.findAllFinishedTrainingsBefore(date);
+    public Optional<Training> getTraining(long trainingId) {
+        return trainingRepository.findById(trainingId);
     }
 
     @Override
-    public List<Training> findALlTrainingsByActivity(ActivityType activityType){
-        return trainingRepository.findAllTrainingsByActivity(activityType);
-    }
-
-    @Override
-    public Training updateTraining(Training training){
-        log.info("Updating Training {}", training);
-        return trainingRepository.save(training);
+    public void deleteTraining(Long trainingId) {
+        Training training = trainingRepository.findById(trainingId)
+                .orElseThrow(() -> new TrainingNotFoundException(trainingId));
+        trainingRepository.delete(training);
     }
 }

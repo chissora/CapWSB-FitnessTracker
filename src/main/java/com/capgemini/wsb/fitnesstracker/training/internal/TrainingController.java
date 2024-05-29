@@ -1,67 +1,55 @@
 package com.capgemini.wsb.fitnesstracker.training.internal;
 
 import com.capgemini.wsb.fitnesstracker.training.api.Training;
+import com.capgemini.wsb.fitnesstracker.training.api.TrainingDto;
+import com.capgemini.wsb.fitnesstracker.training.api.TrainingService;
 import com.capgemini.wsb.fitnesstracker.training.api.TrainingNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/v1/trainings")
 @RequiredArgsConstructor
-class TrainingController {
-
-    @Lazy
-    private final TrainingServiceImpl trainingService;
-
+public class TrainingController {
+    private final TrainingService trainingService;
     private final TrainingMapper trainingMapper;
 
     @GetMapping
-    public List<TrainingDto> getAllTrainings() {
-        return trainingService.getAllTrainings()
-                .stream()
+    public ResponseEntity<List<TrainingDto>> getAllTrainings() {
+        List<TrainingDto> trainings = trainingService.getAllTrainings().stream()
                 .map(trainingMapper::toDto)
                 .toList();
+        return ResponseEntity.ok(trainings);
     }
 
-    @GetMapping("/ofUser/{userId}")
-    public List<TrainingDto> getTrainingsByUserId(@PathVariable long userId) {
-        return trainingService.getAllTrainingsForDedicatedUser(userId).stream().map(trainingMapper::toDto).toList();
+    @GetMapping("/{id}")
+    public ResponseEntity<TrainingDto> getTrainingById(@PathVariable Long id) {
+        return trainingService.getTraining(id)
+                .map(trainingMapper::toDto)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new TrainingNotFoundException(id));
     }
 
     @PostMapping
-    public Training addTraining(@RequestBody TrainingDto trainingDto) {
-        return trainingService.createTraining(trainingMapper.toEntity(trainingDto));
+    public ResponseEntity<Training> createTraining(@RequestBody TrainingDto trainingDto) {
+        Training training = trainingMapper.toEntity(trainingDto);
+        Training createdTraining = trainingService.createTraining(training);
+        return ResponseEntity.status(201).body(createdTraining);
     }
 
-    @GetMapping("/finishedTrainings")
-    public List<TrainingDto> getFinishedTrainings() {
-        return trainingService.findAllFinishedTrainings().stream().map(trainingMapper::toDto).toList();
+    @PutMapping("/{id}")
+    public ResponseEntity<Training> updateTraining(@PathVariable Long id, @RequestBody TrainingDto trainingDto) {
+        Training training = trainingMapper.toEntity(trainingDto);
+        Training updatedTraining = trainingService.updateTraining(id, training);
+        return ResponseEntity.ok(updatedTraining);
     }
 
-    @GetMapping("/finishedTrainings/afterDate/{date}")
-    public List<TrainingDto> getFinishedTrainingsBefore(@PathVariable LocalDate date) {
-        return trainingService.findAllFinishedTrainingsBefore(date).stream().map(trainingMapper::toDto).toList();
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTraining(@PathVariable Long id) {
+        trainingService.deleteTraining(id);
+        return ResponseEntity.noContent().build();
     }
-
-    @GetMapping("/byActivity/{activity}")
-    public List<TrainingDto> getTrainingsByActivity(@PathVariable ActivityType activity) {
-        return trainingService.findALlTrainingsByActivity(activity).stream().map(trainingMapper::toDto).toList();
-    }
-
-    @PatchMapping("/update/training/byAverageSpeed/{id}")
-    public void updateTraining(@PathVariable Long id, @RequestParam double averageSpeed ) {
-        Optional<Training> optionalTraining = trainingService.getTraining(id);
-        if (optionalTraining.isPresent()) {
-            Training training = optionalTraining.get();
-            training.setAverageSpeed(averageSpeed);
-            trainingService.updateTraining(training);
-        }
-        else { throw new TrainingNotFoundException(id); }
-    }
-
 }
