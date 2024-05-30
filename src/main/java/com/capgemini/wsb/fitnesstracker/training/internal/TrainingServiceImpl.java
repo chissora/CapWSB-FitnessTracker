@@ -1,8 +1,8 @@
 package com.capgemini.wsb.fitnesstracker.training.internal;
 
 import com.capgemini.wsb.fitnesstracker.training.api.Training;
-import com.capgemini.wsb.fitnesstracker.training.api.TrainingService;
 import com.capgemini.wsb.fitnesstracker.training.api.TrainingNotFoundException;
+import com.capgemini.wsb.fitnesstracker.training.api.TrainingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +18,16 @@ import java.util.Optional;
 @Slf4j
 public class TrainingServiceImpl implements TrainingService {
     private final TrainingRepository trainingRepository;
+
+    @Override
+    public List<Training> getTrainingsEndingAfter(Date date) {
+        return trainingRepository.findByEndTimeAfter(date);
+    }
+
+    @Override
+    public List<Training> getTrainingsByUser(Long userId) {
+        return trainingRepository.findAllByUserId(userId);
+    }
 
     @Override
     public List<Training> getAllTrainings() {

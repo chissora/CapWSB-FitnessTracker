@@ -14,7 +14,7 @@ public interface TrainingProvider {
      * @param trainingId id of the training to be searched
      * @return An {@link Optional} containing the located Training, or {@link Optional#empty()} if not found
      */
-    Optional<Training> getTraining(long trainingId);
-
+    List<Training> getAllTrainingsForDedicatedUser(Long userId);
     List<Training> getAllTrainings();
+    Optional<Training> getTraining(long trainingId);
 }

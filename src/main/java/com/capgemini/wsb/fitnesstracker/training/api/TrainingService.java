@@ -2,6 +2,7 @@ package com.capgemini.wsb.fitnesstracker.training.api;
 
 import com.capgemini.wsb.fitnesstracker.training.internal.ActivityType;
 
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,4 +15,6 @@ public interface TrainingService {
     Training updateTraining(Long trainingId, Training training);
     Optional<Training> getTraining(long trainingId);
     void deleteTraining(Long trainingId);
+    List<Training> getTrainingsEndingAfter(Date date);
+    List<Training> getTrainingsByUser(Long userId);
 }
